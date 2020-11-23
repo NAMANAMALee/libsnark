@@ -48,18 +48,18 @@ std::istream& operator>>(std::istream &in, r1cs_constraint<FieldT> &c);
  *
  * A R1CS constraint is used to construct a R1CS constraint system (see below).
  */
-template<typename FieldT>
+template<typename FieldT>  //R1CS约束
 class r1cs_constraint {
 public:
 
     linear_combination<FieldT> a, b, c;
 
     r1cs_constraint() {};
-    r1cs_constraint(const linear_combination<FieldT> &a,
+    r1cs_constraint(const linear_combination<FieldT> &a,  // linear_combination：线性组合
                     const linear_combination<FieldT> &b,
                     const linear_combination<FieldT> &c);
 
-    r1cs_constraint(const std::initializer_list<linear_combination<FieldT> > &A,
+    r1cs_constraint(const std::initializer_list<linear_combination<FieldT> > &A,  //initializer_list：初始化列表
                     const std::initializer_list<linear_combination<FieldT> > &B,
                     const std::initializer_list<linear_combination<FieldT> > &C);
 
@@ -78,10 +78,10 @@ public:
 
 /* TODO: specify that it does *NOT* include the constant 1 */
 template<typename FieldT>
-using r1cs_primary_input = std::vector<FieldT>;
+using r1cs_primary_input = std::vector<FieldT>;  //primary就是statement  公钥
 
 template<typename FieldT>
-using r1cs_auxiliary_input = std::vector<FieldT>;
+using r1cs_auxiliary_input = std::vector<FieldT>;  //auxiliary就是witness  私钥
 
 template<typename FieldT>
 using r1cs_variable_assignment = std::vector<FieldT>; /* note the changed name! (TODO: remove this comment after primary_input transition is complete) */
