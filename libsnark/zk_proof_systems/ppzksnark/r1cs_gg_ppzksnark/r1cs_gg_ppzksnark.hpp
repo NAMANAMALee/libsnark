@@ -67,7 +67,7 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_proving_key<ppT> &p
  * A proving key for the R1CS GG-ppzkSNARK.
  */
 template<typename ppT>
-class r1cs_gg_ppzksnark_proving_key {
+class r1cs_gg_ppzksnark_proving_key {  //记录了CRS在prove过程中需要的信息
 public:
     libff::G1<ppT> alpha_g1;
     libff::G1<ppT> beta_g1;
@@ -75,10 +75,10 @@ public:
     libff::G1<ppT> delta_g1;
     libff::G2<ppT> delta_g2;
 
-    libff::G1_vector<ppT> A_query; // this could be a sparse vector if we had multiexp for those
+    libff::G1_vector<ppT> A_query; // this could be a sparse vector if we had multiexp 多重表达式 for those 如果我们对这些对象使用multiexp的话，这可能是一个稀疏向量
     knowledge_commitment_vector<libff::G2<ppT>, libff::G1<ppT> > B_query;
-    libff::G1_vector<ppT> H_query;
-    libff::G1_vector<ppT> L_query;
+    libff::G1_vector<ppT> H_query;  //H_query是如下的计算以G1位生成元的multiexp的计算结果：H(t)*Z(t)/delta
+    libff::G1_vector<ppT> L_query;  //L_query是如下的计算在G1位生成元的multiexp的计算结果：(beta*A(t)+alpha*B(t)+C(t))/delta
 
     r1cs_gg_ppzksnark_constraint_system<ppT> constraint_system;
 
@@ -165,7 +165,7 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_verification_key<pp
  * A verification key for the R1CS GG-ppzkSNARK.
  */
 template<typename ppT>
-class r1cs_gg_ppzksnark_verification_key {
+class r1cs_gg_ppzksnark_verification_key {  //记录了CRS在verify过程中需要的信息
 public:
     libff::GT<ppT> alpha_g1_beta_g2;
     libff::G2<ppT> gamma_g2;
@@ -240,7 +240,7 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_processed_verificat
  * enables a faster verification time.
  */
 template<typename ppT>
-class r1cs_gg_ppzksnark_processed_verification_key {
+class r1cs_gg_ppzksnark_processed_verification_key {  //processed意味着verification key会做进一步处理，验证的过程会更快。
 public:
     libff::GT<ppT> vk_alpha_g1_beta_g2;
     libff::G2_precomp<ppT> vk_gamma_g2_precomp;
@@ -262,8 +262,8 @@ public:
 template<typename ppT>
 class r1cs_gg_ppzksnark_keypair {
 public:
-    r1cs_gg_ppzksnark_proving_key<ppT> pk;
-    r1cs_gg_ppzksnark_verification_key<ppT> vk;
+    r1cs_gg_ppzksnark_proving_key<ppT> pk;  //生成公钥
+    r1cs_gg_ppzksnark_verification_key<ppT> vk;  //生成私钥
 
     r1cs_gg_ppzksnark_keypair() = default;
     r1cs_gg_ppzksnark_keypair(const r1cs_gg_ppzksnark_keypair<ppT> &other) = default;
@@ -296,7 +296,7 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_proof<ppT> &proof);
  * about the structure for statistics purposes.
  */
 template<typename ppT>
-class r1cs_gg_ppzksnark_proof {
+class r1cs_gg_ppzksnark_proof {  //Groth16算法的证明包括A/B/C三个结果
 public:
     libff::G1<ppT> g_A;
     libff::G2<ppT> g_B;
@@ -352,13 +352,14 @@ public:
 };
 
 
-/***************************** Main algorithms *******************************/
+/***************************** Main algorithms 主要算法 *******************************/
 
 /**
  * A generator algorithm for the R1CS GG-ppzkSNARK.
  *
  * Given a R1CS constraint system CS, this algorithm produces proving and verification keys for CS.
  */
+ //给定一个r1cs_constraint_system的基础上，r1cs_gg_ppzksnark_generator能生成r1cs_gg_ppzksnark_keypair，也就是生成CRS信息
 template<typename ppT>
 r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksnark_constraint_system<ppT> &cs);
 
@@ -370,13 +371,18 @@ r1cs_gg_ppzksnark_keypair<ppT> r1cs_gg_ppzksnark_generator(const r1cs_gg_ppzksna
  *               ``there exists Y such that CS(X,Y)=0''.
  * Above, CS is the R1CS constraint system that was given as input to the generator algorithm.
  */
-template<typename ppT>
+template<typename ppT>  //给定了proving key以及primary/auxiliary input，计算证明的A/B/C结果。
 r1cs_gg_ppzksnark_proof<ppT> r1cs_gg_ppzksnark_prover(const r1cs_gg_ppzksnark_proving_key<ppT> &pk,
                                                       const r1cs_gg_ppzksnark_primary_input<ppT> &primary_input,
                                                       const r1cs_gg_ppzksnark_auxiliary_input<ppT> &auxiliary_input);
 
 /*
   Below are four variants of verifier algorithm for the R1CS GG-ppzkSNARK.
+  
+  总共提供了四种验证函数，分成两类：processed/non-processed 和 weak/strong IC。
+  processed/non-processed是指验证的key是否processed？weak/strong IC指的是，
+  是否input consistency？Primary Input的大小和QAP的statement的大小相等，称为strong IC。
+  Primary Input的大小小于QAP的statement的大小，称为weak IC。
 
   These are the four cases that arise from the following two choices:
 
@@ -404,15 +410,17 @@ bool r1cs_gg_ppzksnark_verifier_weak_IC(const r1cs_gg_ppzksnark_verification_key
  * (1) accepts a non-processed verification key, and
  * (2) has strong input consistency.
  */
-template<typename ppT>
+template<typename ppT>  
+//以r1cs_gg_ppzksnark_verifier_strong_IC为例，在给定verification key/primary input的基础上，可以验证proof是否正确。
 bool r1cs_gg_ppzksnark_verifier_strong_IC(const r1cs_gg_ppzksnark_verification_key<ppT> &vk,
                                           const r1cs_gg_ppzksnark_primary_input<ppT> &primary_input,
                                           const r1cs_gg_ppzksnark_proof<ppT> &proof);
 
 /**
  * Convert a (non-processed) verification key into a processed verification key.
+ * 将（未处理的）验证密钥转换为已处理的验证密钥
  */
-template<typename ppT>
+template<typename ppT>  
 r1cs_gg_ppzksnark_processed_verification_key<ppT> r1cs_gg_ppzksnark_verifier_process_vk(const r1cs_gg_ppzksnark_verification_key<ppT> &vk);
 
 /**
